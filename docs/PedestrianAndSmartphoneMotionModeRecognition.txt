@@ -1,0 +1,12 @@
+Pedestrian and Smartphone Motion Mode Recognition
+Yuval Solaz, Itzik Klein, Guy Ohayon
+
+The possibility of using mobile devices (such as smartphones) for locating a person is becoming more and more attractive for many applications. Among them are health care services, commercial applications, emergency applications and safety services.
+While in outdoors, the positioning of a person by its smartphone is usually based on Global Navigation Satellite Systems (GNSS). However, in indoor environments the availability of satellite signals cannot be guaranteed and GNSS based services can be highly degraded or totally denied. 
+In such situations, one of the approaches to find the position of the smartphone is known as Pedestrian Dead Reckoning (PDR). PDR relies on the smartphone low-cost sensors such as accelerometers, gyroscopes and magnetometers. In general, after a user depend calibration phase, PDR uses the accelerometers to detect the pedestrian steps and then estimate the step length. Next, the heading is obtained from the gyroscopes and/or magnetometer. Given the pedestrian initial conditions and by using the current heading and step length size, the current pedestrian position can be found.
+Recent papers showed that by identifying the mode of the smartphone (handheld, in a pocket, texting and etc) and/or the pedestrian (walking, running, elevator and etc) the accuracy of PDR algorithms can greatly be improved. In this research, we employ machine learning algorithms in order to recognize and classify the mode of the pedestrian and smartphone. Given the pedestrian and smartphone modes, appropriate algorithms are used for the PDR process. Results show that the mode recognition improves the accuracy of PDR algorithms.
+
+ 
+
+
+

@@ -1,0 +1,65 @@
+From:	סולאז יובל
+Sent:	יום חמישי 31 אוגוסט 2017 11:25
+To:	סולאז יובל; קליין איציק; אוחיון גיא
+Subject:	RE: Motion Mode Recognition Data collection draft 
+
+Target :
+use device sensors for phone and padaestrian mode classification 
+
+
+Classifications categories :
+
+            device mode classifier categories  : 
+                        1. swinging in hand   
+                        2. in pocket  
+                        3. texting
+                        4. unknown 
+
+            pedestrian modes classifier : 
+                        1. fast walking 
+                        2. calm walking 
+                        3. stairs
+                        4. static 
+
+data collection : 
+
+            recording tool : android  "Physics Toolbox Suite"  application 
+
+            sample rate : faster ( sensor maximum frequency )  == 50 Hertz
+            
+            sensors :
+                        1. g-force - x,y,z acceleration in g units 
+                        2. gyro -              wx wy wz red/sec 
+                        3. magnetometer - magnetic field x y z 
+                        4. barometer - if exists on the device 
+                        5. light meter - just in case 
+
+
+            optional : 
+                        add user events logging 
+                        
+                        
+            recording layout : 
+                        single mode sessions of 30 seconds 
+                        start each session with static 2 seconds  for sensor calibration 
+                        go only in straight line
+                        
+            recurrence : 
+                        keep the same mode pattern : 
+                                    pocket mode use back pocket, screen toward body 
+                                    text mode use the same device orientation 
+
+pre processing  : 
+           
+                         1. noise reduction - high pass filter 
+                         2. remove dc                      
+                         3. normalize
+
+Optional Features : 
+                         1. average norm on N samples sliding window      ( N = 128) 
+                         2. variance on N samples  sliding window   
+                        
+Notes : 
+                        1. Jeans or sports pants ?
+                        2. non sterilized walking environment  
+
