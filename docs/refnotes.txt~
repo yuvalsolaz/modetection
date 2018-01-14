@@ -1,0 +1,22 @@
+replace learning with training
+
+2. Methodology: Utilizing the those features  - remove the the 
+Figure 1. In the data acquisition phase, the data required for the learning - for training 
+
+2.1. Strategy : for data collection required in the
+learning process. - in the training process
+
+2.1. Strategy
+In this research we use a single user with a single phone for data collection required in the
+learning process- this is an operational constrainte , data from more users and more devices should improve the classification accuracy 
+
+whats the meaning of zero crossing for vector norm ?
+multi class svm ( svm is binary )
+
+Table 2. Accuracy Results - need to explain the accuracy term : precision , recall , recall precision  
+
+feature importance - need a feature translation amgforce === amplitude gforce
+
+add what else could be done to improve accuracy : xgboost CNN RNN , use additional sensors 
+
+
