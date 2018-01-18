@@ -6,9 +6,22 @@ import numpy as np
 from tsfresh import extract_features
 from tsfresh.utilities.dataframe_functions import impute
 from tsfresh import select_features
+from sklearn.ensemble import RandomForestClassifier
+
+from sklearn.model_selection import GroupShuffleSplit
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.tree import DecisionTreeClassifier
+from sklearn import svm
+from sklearn.metrics import confusion_matrix
+from sklearn.metrics import classification_report
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import RandomizedSearchCV
+from sklearn.model_selection import GroupKFold
+from sklearn.metrics import make_scorer
 
 ## consts :
-dataSource = r'../raw-data/utf8'
+dataSource = r'../fresh-data'
 SAMPLE_FREQ = 50 
 FILE_MARGINES = 2* SAMPLE_FREQ  ## number of samples to ignore in the  start and in the end of the file (5 seconds )  
 WINDOW_SIZE = 2 * 128  ## sliding window size 
@@ -57,43 +70,41 @@ print( 'total train samples ' , len(rdf) , ' from ' ,len(rdf.source.unique()),  
 
 rdf.drop(u'Unnamed: 11',inplace=True,axis=1)
 rdf.drop(u'Unnamed: 12',inplace=True,axis=1)
-rdf.drop(u'Unnamed: 17',inplace=True,axis=1)
+# rdf.drop(u'Unnamed: 17',inplace=True,axis=1)
 
 rdf.groupby('devicemodeDescription').devicemode.count()
 
+# add id for each data window
+windowsize = 128
+rdf['id'] = [int(i/windowsize) for i in range(0,len(rdf))] # rdf['source']
+
 rdf.columns
 
-timeseries = rdf[['gFy', 'gFz', 'gfx','time', 'wx', 'wy', 'wz']].copy()
+timeseries = rdf[['id','gFy', 'gFz', 'gfx','time', 'wx', 'wy', 'wz']].copy()
 
 # calc norm for each vector
-timeseries['gforce'] = np.sqrt(timeseries['gfx']**2 + timeseries['gFy']**2 + timeseries['gFz']**2)
-timeseries['gyro'] = np.sqrt(timeseries['wx']**2 + timeseries['wy']**2 + timeseries['wz']**2)     
+timeseries['g-norm'] = np.sqrt(timeseries['gfx']**2 + timeseries['gFy']**2 + timeseries['gFz']**2)
+timeseries['w-norm'] = np.sqrt(timeseries['wx']**2 + timeseries['wy']**2 + timeseries['wz']**2)
 
-# add id
-timeseries['id'] = rdf['source'] # range(0, len(timeseries))
-
+y = rdf.groupby('id')['devicemode'].agg(np.mean)
 # fill nan values
 timeseries.fillna(0,inplace=True)
 
-y = rdf.groupby('source')['devicemode'].agg(np.mean)
+#y = rdf.groupby('source')['devicemode'].agg(np.mean)
 
 
-extracted_features = extract_features(timeseries[:data_limit], column_id='id', column_sort="time")
+extracted_features = extract_features(timeseries, column_id='id', column_sort="time")
 print ('{} features extracted '.format(len(extracted_features)))
 
 impute(extracted_features)
 
-features_filtered = select_features(extracted_features, y[:data_limit])
+features_filtered = select_features(extracted_features, y)
 
 k= 4 ## len(rdf.source.unique())
 x_train= extracted_features
 y_train = y
 forest = RandomForestClassifier()
-tree = DecisionTreeClassifier()
-knn5 = KNeighborsClassifier(n_neighbors=5)
-lin_svm = svm.LinearSVC() ## (C=1.0, class_weight=None, dual=True, fit_intercept=True,
-                         ## intercept_scaling=1, loss='squared_hinge', max_iter=1000,
-                         ## multi_class='ovr', penalty='l2', random_state=None, tol=0.0001, verbose=0)
+# knn5 = KNeighborsClassifier(n_neighbors=5)
 
 def sourceFold(): 
     print ('list of source files for each kfold : ' )    
@@ -108,22 +119,11 @@ def sourceFold():
     return sf 
 
 
-# In[ ]:
-
-
 def CalcKFoldAccuracy(classifier,X,Y,k):
     group_kfold = GroupKFold(n_splits=k)     
     groups_itr = group_kfold.split(X, Y, groups=rdf.source)    
     return cross_val_score(classifier, X, Y, cv=groups_itr, scoring='accuracy')
 
 
-# In[ ]:
-
-
-print ('KNN : ')
-print (CalcKFoldAccuracy(knn5,x_train,y_train,k))
 print ('RF : ')
 print (CalcKFoldAccuracy(forest,x_train,y_train,k))
-print ('SVM : ')
-print (CalcKFoldAccuracy(lin_svm,x_train,y_train,k))
-
