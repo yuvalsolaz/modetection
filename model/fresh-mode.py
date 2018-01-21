@@ -3,17 +3,21 @@
 import os
 import pandas as pd
 import numpy as np
+
 from sklearn.pipeline import Pipeline
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import cross_val_score
+
 from tsfresh.transformers import RelevantFeatureAugmenter
+
 
 ## consts :
 dataSource = r'../fresh-data'
-testSource = r'../raw-data/validation/utf8'
+testSource = r'../fresh-data/validation'
 SAMPLE_FREQ = 50 
 FILE_MARGINES = 2* SAMPLE_FREQ  ## number of samples to ignore in the  start and in the end of the file (5 seconds )  
 WINDOW_SIZE = 64 ## sliding window size
-
+SENSOR_COMPONENTS = ['time','gfx','gFy','gFz','wx','wy','wz']
 
 DEVICE_MODE_LABELS = ['pocket','swing','texting','talking','whatever']
 
@@ -53,38 +57,52 @@ def loadSensorData(inputDir):
     rdf = loadFiles(inputDir)
     print('=========================================================')
     print( 'total train samples ' , len(rdf) , ' from ' ,len(rdf.source.unique()),  ' files ')
-
-    rdf.drop(u'Unnamed: 11',inplace=True,axis=1)
-    rdf.drop(u'Unnamed: 12',inplace=True,axis=1)
-    # rdf.drop(u'Unnamed: 17',inplace=True,axis=1)
-
     rdf.groupby('devicemodeDescription').devicemode.count()
 
     # add id for each data window
-    rdf['id'] = [int(i/WINDOW_SIZE) for i in range(0,len(rdf))] # rdf['source']
+    rdf['id'] = [int(i/WINDOW_SIZE) for i in range(0,len(rdf))]
 
-    rdf.columns
+    ts_df = rdf[['id']+SENSOR_COMPONENTS].copy()
 
-    timeseries = rdf[['id','gFy', 'gFz', 'gfx','time', 'wx', 'wy', 'wz']].copy()
 
     # calc norm for each vector
-    timeseries['g-norm'] = np.sqrt(timeseries['gfx']**2 + timeseries['gFy']**2 + timeseries['gFz']**2)
-    timeseries['w-norm'] = np.sqrt(timeseries['wx']**2 + timeseries['wy']**2 + timeseries['wz']**2)
+    ts_df['g-norm'] = np.sqrt(ts_df['gfx']**2 + ts_df['gFy']**2 + ts_df['gFz']**2)
+    ts_df['w-norm'] = np.sqrt(ts_df['wx']**2 +  ts_df['wy']**2 +  ts_df['wz']**2)
 
     y = rdf.groupby('id')['devicemode'].agg(np.mean)> 1
+
     # fill nan values
-    return timeseries.fillna(0,inplace=True)
+    return ts_df.fillna(0) , y
 
 
+## main :
+def main():
+    pipeline = Pipeline([('augmenter', RelevantFeatureAugmenter(column_id='id', column_sort='time')),
+                         ('classifier', RandomForestClassifier())])
 
-pipeline = Pipeline([('augmenter', RelevantFeatureAugmenter(column_id='id', column_sort='time')),
-            ('classifier', RandomForestClassifier())])
+    ts_df, y = loadSensorData(dataSource)
+    X = pd.DataFrame(index=y.index)
 
-df_ts, y = loadSensorData(dataSource)
-X = pd.DataFrame(index=y.index)
+    pipeline.set_params(augmenter__timeseries_container=ts_df)
+    pipeline.fit(X, y)
 
-pipeline.set_params(augmenter__timeseries_container=df_ts)
-pipeline.fit(X, y)
-pred = pipeline.predict(X)
-test = loadSensorData(testSource)
-pred.head()
+    # - You can select any metric to score your pipeline
+    scores = cross_val_scores(pipeline, X, y, cv=4,
+                          scoring='f1_micro')
+
+    val_ts_df, val_y = loadSensorData(testSource)
+
+    val_X = pd.DataFrame(index=val_y.index)
+
+    pipeline.set_params(augmenter__timeseries_container=val_ts_df)
+    pipeline.fit(val_X, val_y)
+
+    print('score : {}'.format(pipeline.score(val_X,val_y))) # pipeline.score(val_X,val_y)
+
+    ## validate_prediction(pipline=pipeline, inputData=testSource)
+
+
+if __name__ == "__main__" :
+    main()
+
+
