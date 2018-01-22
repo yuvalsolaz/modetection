@@ -4,12 +4,13 @@ import os
 import pandas as pd
 import numpy as np
 
+# from sklearn.model_selection import cross_val_score
 from sklearn import preprocessing
 from sklearn.pipeline import Pipeline
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import cross_val_score
 
 from tsfresh.transformers import RelevantFeatureAugmenter
+from tsfresh import select_features
 
 ## consts :
 dataSource = r'../fresh-data'
@@ -72,10 +73,20 @@ def loadSensorData(inputDir):
     return ts_df.fillna(0) , y
 
 
+
+def findRelevantFeatures(X,y):
+    relevant_features = set()
+    for label in y.unique():
+        y_binary = y==label
+        X_filtered = select_features(X, y_binary)
+        print("Number of relevant features for class {}: {}/{}".format(label, X_filtered.shape[1],
+                                                                       X.shape[1]))
+        return relevant_features.union(set(X_filtered.columns))
+
 ## main :
 def main():
     pipeline = Pipeline([('augmenter', RelevantFeatureAugmenter(column_id='id', column_sort='time')),
-                         ('classifier', RandomForestClassifier())])
+                         ('classifier', RandomForestClassifier(n_estimators=256))])
 
     ts_df, y = loadSensorData(dataSource)
     X = pd.DataFrame(index=y.index)
@@ -83,15 +94,22 @@ def main():
     pipeline.set_params(augmenter__timeseries_container=ts_df)
     pipeline.fit(X, y)
 
+    # check cross validation
+    # scores = cross_val_score(pipeline, X, y, cv=4, scoring='f1_micro')
+    # print ('cross validation scores {}'.format(scores))
+
+    # validate on separted data
     val_ts_df, val_y = loadSensorData(testSource)
 
     val_X = pd.DataFrame(index=val_y.index)
 
     pipeline.set_params(augmenter__timeseries_container=val_ts_df)
 
-    print('score : {}'.format(pipeline.score(val_X,val_y))) # pipeline.score(val_X,val_y)
+    print('score : {}'.format(pipeline.score(val_X,val_y)))
 
-    # scores = cross_val_scores(pipeline, X, y, cv=4, scoring='f1_micro')
+    # relevant_features = findRelevantFeatures(X,y)
+    # print('relevant_features: \r\n ', relevant_features)
+
 
 
 if __name__ == "__main__" :
